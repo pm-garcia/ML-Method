@@ -1,12 +1,43 @@
-# Linear regression, manual implementation - no use of frameworks
+# Linear regression and gradient descent, manual implementation -> No use of frameworks
 
 # Paul Martín García Morfín | A01750164
 # Tecnológico de Monterrey 2022
+
+'''
+Used dataset: Boston Housing
+This dataset contains information collected by the U.S Census Service concerning housing in the area of Boston Mass.
+* The medv variable is the target variable (median value of a home).
+Variables
+    1. There are 14 attributes in each case of the dataset. They are:
+    2. CRIM - per capita crime rate by town
+    3. ZN - proportion of residential land zoned for lots over 25,000 sq.ft.
+    4. INDUS - proportion of non-retail business acres per town.
+    5. CHAS - Charles River dummy variable (1 if tract bounds river; 0 otherwise)
+    6. NOX - nitric oxides concentration (parts per 10 million)
+    7. RM - average number of rooms per dwelling
+    8. AGE - proportion of owner-occupied units built prior to 1940
+    9. DIS - weighted distances to five Boston employment centres
+    10. RAD - index of accessibility to radial highways
+    11. TAX - full-value property-tax rate per $10,000
+    12. PTRATIO - pupil-teacher ratio by town
+    13. B - 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town
+    14. LSTAT - % lower status of the population
+    15. MEDV - Median value of owner-occupied homes in $1000's
+* In this case, the variable LSTAT is used to make a simple linear regression model.
+
+With the parameters used, the line equation found is:  34.73349627077651 + -0.9683693152536808 x
+The metrics used for model evaluation are the MSE and RMSE: 
+    - MSE: 40.96
+    - RMSE: 6.39
+
+At the end, the graphs of the found line are shown, as well as a dataframe comparing the actual y with the estimated y. 
+'''
 
 # Used libraries
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Model for simple linear regression
 def model(B0, B1, x):
@@ -32,19 +63,34 @@ def gradient_descent(B0_, B1_, lr, x, y):
 # Reading the data set
 columns = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT', 'MEDV']
 housing = pd.read_csv('D:/paulm/Documents/Python Scripts/Universidad/IA y ciencia de datos I/Machine Learning/housing.csv', delim_whitespace=' ', names=columns)
+print('The objective is to predict the median value of a home.')
+
+# Correlation matrix
+plt.figure(figsize=(10, 10))
+sns.heatmap(housing.corr(), cmap='RdYlBu', 
+    annot=True, square=True,
+    vmin=-1, vmax=1, fmt='+.3f')
+plt.title('Correlation matrix')
+plt.show()
+corr = housing.corr()
+corr.drop(['MEDV'], axis=0, inplace=True)
+maxvar = abs(corr[['MEDV']]).idxmax()[0]
+print('Variable with the highest correlation factor: ', maxvar)
 
 # Split the data into training (80%) and test (20%)
 train = housing.sample(frac=0.8, random_state=25)
 test = housing.drop(train.index)
-# Using the RM variable because it has a higher correlation factor 
-x_train = train['RM'].values
+
+# Using the LSTAT variable because it has a higher correlation factor 
+x_train = train['LSTAT'].values
 y_train = train['MEDV'].values
-x_test = test['RM'].values
+x_test = test['LSTAT'].values
 y_test = test['MEDV'].values
 
 # Graphing the data
 plt.scatter(x_train, y_train)
-plt.xlabel('Total rooms')
+plt.title('Scatter plot: Lower status VS Mean value')
+plt.xlabel('Lower status')
 plt.ylabel('Mean value')
 plt.show()
 
@@ -82,8 +128,8 @@ plt.show()
 y_regr = model(B0, B1, x_train)
 plt.scatter(x_train, y_train)
 plt.plot(x_train, y_regr, 'r')
-plt.title('Simple linear regression')
-plt.xlabel('Total rooms')
+plt.title('Best-fit line')
+plt.xlabel('Lower status')
 plt.ylabel('Mean value')
 plt.show()
 
@@ -94,10 +140,14 @@ y_mean = y_test.mean()
 #sstot = np.sum((y_test-y_mean)**2)
 #r2_score = ssreg/sstot
 mse = MSE(y_test, y_pred)
+rmse = np.sqrt(mse)
 y_comp = pd.DataFrame()
 y_comp['y_test'] = y_test
 y_comp['y_pred'] = y_pred
 print('Value comparison')
 print(y_comp)
+print('The line equation found is: ', B0, '+', B1, 'x')
 print('MSE for model evaluation: {}'.format(mse))
+print('RMSE for model evaluation: {}'.format(rmse))
 #print('R2 score for model evaluation: {}'.format(r2_score))
+print('-'*50)
