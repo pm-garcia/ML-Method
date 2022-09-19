@@ -1,4 +1,4 @@
-# Linear regression and gradient descent, manual implementation -> No use of frameworks
+# Random Forest implementation -> Use of RandomForestRegressor from Sklearn
 
 # Paul Martín García Morfín | A01750164
 # Tecnológico de Monterrey 2022
@@ -23,47 +23,60 @@ Variables
     13. B - 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town
     14. LSTAT - % lower status of the population
     15. MEDV - Median value of owner-occupied homes in $1000's
-* In this case, the variable LSTAT is used to make a simple linear regression model.
+* In this case, all variables ares used to make a random forest model.
 
-With the parameters used, the line equation found is:  34.73349627077651 + -0.9683693152536808 x
-The metrics used for model evaluation are the MSE and RMSE: 
+With the parameters used, the metrics used for the model are MSE and RMSE: 
     - MSE: 40.96
     - RMSE: 6.39
 
-At the end, the graphs of the found line are shown, as well as a dataframe comparing the actual y with the estimated y. 
+At the end, the graphs of the model are shown. 
 '''
 
 # Used libraries
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+import pandas               as pd
+import numpy                as np 
+import matplotlib.pyplot    as plt
+import seaborn              as sns
 
-# Model for simple linear regression
-def model(B0, B1, x):
-    return B0+B1*x
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+#from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split #, KFold, cross_val_score, cross_val_predict, cross_validate, GridSearchCV
+#from sklearn import metrics, feature_selection, model_selection
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+#from sklearn.tree import plot_tree
 
-# Error function: Mean Square Error
-def MSE(y, y_):
-    n = y.shape[0]
-    mse = np.sum((y-y_)**2)/n
-    return mse
-
-# Gradient descent to minimize error function
-def gradient_descent(B0_, B1_, lr, x, y):
-    n = x.shape[0]
-    # Error function derivatives
-    B0_d = -(2/n)*np.sum(y-(B0_+B1_*x))
-    B1_d = -(2/n)*np.sum((y-(B0_+B1_*x))*x)
-    # Updating parameters with a learning rate
-    B0 = B0_-lr*B0_d
-    B1 = B1_-lr*B1_d
-    return B0, B1
 
 # Reading the data set
 columns = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT', 'MEDV']
 housing = pd.read_csv('D:/paulm/Documents/Python Scripts/Universidad/IA y ciencia de datos I/Machine Learning/housing.csv', delim_whitespace=' ', names=columns)
-print('The objective is to predict the median value of a home.')
+print('\nThe objective is to predict the median value of a home.\n')
+
+# -- EDA --
+print('-'*20, 'EDA', '-'*20)
+print('\nDataset shape: ')
+print(housing.shape)
+
+print('\nSummary: ')
+print(round(housing.describe().transpose(), 2))
+
+print('\nNumerical variables: ')
+for x in housing.select_dtypes(exclude=['object']):
+    print('\t' + x)
+
+print('\nCategorical variables: ')
+for x in housing.select_dtypes(include=['object']):
+    print('\t' + x)
+
+print('\nMissing data count: ')
+missing_data = housing.isna().sum()
+print(missing_data[missing_data > 0])
+
+print('\nDuplicated data count: ')
+duplicated_data = housing.duplicated().sum()
+print(duplicated_data[duplicated_data > 0])
+print('-'*45)
+# ---------
 
 # Correlation matrix
 plt.figure(figsize=(10, 10))
@@ -72,82 +85,61 @@ sns.heatmap(housing.corr(), cmap='RdYlBu',
     vmin=-1, vmax=1, fmt='+.3f')
 plt.title('Correlation matrix')
 plt.show()
-corr = housing.corr()
-corr.drop(['MEDV'], axis=0, inplace=True)
-maxvar = abs(corr[['MEDV']]).idxmax()[0]
-print('Variable with the highest correlation factor: ', maxvar)
+
+# Variables (target and features) 
+y = housing['MEDV']
+X = housing.drop(['MEDV'], axis=1).copy()
+
+# Data scaling
+s_scaler = StandardScaler()
+s_scaler.fit(X)
+X_trans = s_scaler.fit_transform(X)
 
 # Split the data into training (80%) and test (20%)
-train = housing.sample(frac=0.8, random_state=25)
-test = housing.drop(train.index)
+X_train, X_test, y_train, y_test = train_test_split(X_trans, y, test_size=0.2, random_state=42)
 
-# Using the LSTAT variable because it has a higher correlation factor 
-x_train = train['LSTAT'].values
-y_train = train['MEDV'].values
-x_test = test['LSTAT'].values
-y_test = test['MEDV'].values
+# Random forest model
+forest = RandomForestRegressor(n_estimators=15, max_depth=9, random_state=42)
+forest.fit(X_train, y_train)
 
-# Graphing the data
-plt.scatter(x_train, y_train)
-plt.title('Scatter plot: Lower status VS Mean value')
-plt.xlabel('Lower status')
-plt.ylabel('Mean value')
-plt.show()
+# Predictions
+y_hat_train = forest.predict(X_train)
+y_hat_test = forest.predict(X_test)
 
-# Initialize the parameters with a random value
-np.random.seed(2)
-B0 = np.random.randn(1)[0]
-B1 = np.random.randn(1)[0]
-
-# Define the learning rate and the number of iterations
-lr = 0.0004
-epochs = 40000
-
-# Training
-error = np.zeros((epochs, 1))
-for i in range(epochs):
-    [B0, B1] = gradient_descent(B0, B1, lr, x_train, y_train)
-    y_ = model(B0, B1, x_train)
-    error[i] = MSE(y_train, y_)
-
-    # Print results every 1000 epochs
-    if (i+1)%1000 == 0:
-        print('Epoch {}'.format(i+1))
-        print('    B0: {:.1f}'.format(B0), ' B1: {:.1f}'.format(B1))
-        print('    MSE: {}'.format(error[i]))
-        print('========================================')
-
-# Graphing the error
-plt.plot(range(epochs), error)
-plt.title('MSE vs Epochs')
-plt.xlabel('Epoch')
-plt.ylabel('MSE')
-plt.show()
-
-# Graphing the linear regression obtained
-y_regr = model(B0, B1, x_train)
-plt.scatter(x_train, y_train)
-plt.plot(x_train, y_regr, 'r')
-plt.title('Best-fit line')
-plt.xlabel('Lower status')
-plt.ylabel('Mean value')
-plt.show()
-
-# Making predictions and evaluating the model
-y_pred = model(B0, B1, x_test)
-y_mean = y_test.mean()
-#ssreg = np.sum((y_pred-y_mean)**2)
-#sstot = np.sum((y_test-y_mean)**2)
-#r2_score = ssreg/sstot
-mse = MSE(y_test, y_pred)
-rmse = np.sqrt(mse)
 y_comp = pd.DataFrame()
 y_comp['y_test'] = y_test
-y_comp['y_pred'] = y_pred
-print('Value comparison')
+y_comp['y_pred'] = y_hat_test
+
+print('\nValue comparison')
 print(y_comp)
-print('The line equation found is: ', B0, '+', B1, 'x')
-print('MSE for model evaluation: {}'.format(mse))
-print('RMSE for model evaluation: {}'.format(rmse))
-#print('R2 score for model evaluation: {}'.format(r2_score))
-print('-'*50)
+
+# Model in train
+mse_train = mean_squared_error(y_hat_train, y_train)
+mae_train = mean_absolute_error(y_hat_train, y_train)
+rmse_train = np.sqrt(mse_train)
+r2_train = r2_score(y_hat_train, y_train)
+print("\nThe model has the following metrics in train:")
+print("MSE: ", mse_train)
+print("RMSE: ", rmse_train)
+print("MAE: ", mae_train)
+print("R2: ", r2_train)
+
+# Model in test
+mse_test = mean_squared_error(y_hat_test, y_test)
+mae_test = mean_absolute_error(y_hat_test, y_test)
+r2_test = r2_score(y_hat_test, y_test)
+rmse_test = np.sqrt(mse_test)
+print("\nThe model has the following metrics in train:")
+print("MSE: ", mse_test)
+print("RMSE: ", rmse_test)
+print("MAE: ", mae_test)
+print("R2: ", r2_test)
+print('')
+
+# Graphing the model
+'''plt.figure(figsize=(20, 5))
+plot_tree(forest, max_depth=2, feature_names=X.columns)
+plt.show()
+
+plt.barh(y=X.columns, width=forest.feature_importances_,)
+plt.show()'''
