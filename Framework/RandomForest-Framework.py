@@ -25,8 +25,9 @@ Attributes
 * In this case, all variables ares used to make a random forest model.
 
 With the parameters used, the metrics used for the model are MSE and RMSE: 
-    - MSE: 40.96
-    - RMSE: 6.39
+    - MSE: 7.93
+    - RMSE: 2.82
+    - R2: 0.87
 
 At the end, the graphs of the model are shown. 
 '''
@@ -39,17 +40,11 @@ import seaborn              as sns
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
-#from sklearn.metrics import confusion_matrix
-from sklearn.model_selection import train_test_split, learning_curve #, KFold, cross_val_score, cross_val_predict, cross_validate, GridSearchCV
-#from sklearn import metrics, feature_selection, model_selection
+from sklearn.model_selection import train_test_split, learning_curve
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
-#from sklearn.tree import plot_tree
-from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import ParameterGrid
-from sklearn.inspection import permutation_importance
 import multiprocessing
 
 
